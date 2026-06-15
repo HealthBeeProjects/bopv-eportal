@@ -18,15 +18,31 @@ This package includes an updated bOPV PV e-portal with the AEFI statistical deta
 ## Important Privacy Note
 Filled AEFI forms contain child-level identifiable information. They are not included in the public website pages. Keep filled forms in secure controlled storage only. The website shows aggregate and anonymized information.
 
-## Demo Login
-Email: admin@healthbee.pk
-Password: ChangeMe123!
+## First-Run Configuration
 
-Change this before production use.
+The app requires a real secret key before it will start.
+
+Create a local `.env` file from `.env.example`, then set:
+- `SECRET_KEY` to a long random value.
+- `ADMIN_EMAIL` and `ADMIN_PASSWORD` to create or reset the bootstrap admin account.
+- `PUBLIC_SIGNUP_ENABLED=false` for controlled PV access.
+- `SESSION_COOKIE_SECURE=true` when deployed behind HTTPS.
+
+If the database is empty and `ADMIN_EMAIL` / `ADMIN_PASSWORD` are missing, startup fails instead of creating a known demo account.
 
 ## Run Locally
+Copy and edit the environment example first:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Install and run:
+
+```powershell
 pip install -r requirements.txt
 python app.py
+```
 
 Then open:
 http://127.0.0.1:5000
@@ -42,17 +58,18 @@ Basic steps:
 4. Run:
    mkvirtualenv --python=/usr/bin/python3.11 pv-env
    pip install -r requirements.txt
-5. Web tab > Add new web app > Manual configuration > Python 3.11.
-6. Set source code path to the uploaded folder.
-7. Set virtualenv path to pv-env.
-8. Edit WSGI file and add:
+5. Set environment variables for `SECRET_KEY`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `PV_DB_PATH`, `PUBLIC_SIGNUP_ENABLED`, and `SESSION_COOKIE_SECURE`.
+6. Web tab > Add new web app > Manual configuration > Python 3.11.
+7. Set source code path to the uploaded folder.
+8. Set virtualenv path to pv-env.
+9. Edit WSGI file and add:
    import sys
    path = '/home/YOURUSERNAME/HealthBee_bOPV_EPortal_ProductionReady'
    if path not in sys.path:
        sys.path.insert(0, path)
    from app import app as application
-9. Reload web app.
-10. Your live link will be:
+10. Reload web app.
+11. Your live link will be:
     https://YOURUSERNAME.pythonanywhere.com
 
 ## Google Search

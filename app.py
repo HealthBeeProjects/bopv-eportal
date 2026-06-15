@@ -1,20 +1,67 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, Response, jsonify, send_from_directory
+from flask import Flask, abort, render_template, request, redirect, url_for, session, flash, Response, jsonify, send_from_directory
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import sqlite3
 import csv
 import io
 import os
+import secrets
+
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def load_local_env(path=None):
+    if path is None:
+        path = os.path.join(BASE_DIR, ".env")
+    if not os.path.exists(path):
+        return
+    with open(path, encoding="utf-8") as env_file:
+        for line in env_file:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
+def env_flag(name, default=False):
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def utc_now():
+    return datetime.now(timezone.utc)
+
+
+def utc_iso():
+    return utc_now().isoformat()
+
+
+load_local_env()
 
 APP_NAME = "bOPV E-Portal"
-DB_PATH = os.environ.get("PV_DB_PATH", "pv_eportal.db")
-SECRET_KEY = os.environ.get("SECRET_KEY", "change-this-secret-key-before-production")
+DB_PATH = os.environ.get("PV_DB_PATH") or os.path.join(BASE_DIR, "pv_eportal.db")
+DOCUMENT_DIR = os.path.join(BASE_DIR, "static", "documents")
+SECRET_KEY = os.environ.get("SECRET_KEY", "").strip()
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY is required. Set it in the environment or a local .env file.")
+
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "").strip().lower()
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+PUBLIC_SIGNUP_ENABLED = env_flag("PUBLIC_SIGNUP_ENABLED", False)
+
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
-
-DEFAULT_ADMIN_EMAIL = "admin@healthbee.pk"
-DEFAULT_ADMIN_PASSWORD = "ChangeMe123!"
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=env_flag("SESSION_COOKIE_SECURE", False),
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=int(os.environ.get("SESSION_HOURS", "8"))),
+)
 
 AEFI_SUMMARY = {
     "total_children": 70,
@@ -103,6 +150,8 @@ ANON_CASE_EXTRACT = [
     ("Case 010", "F", "52", "Apr-2025", "Fever", "Afebrile"),
 ]
 
+ALLOWED_DOCUMENTS = {"AEFI_REPORT_UPDATED.docx"}
+
 def db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -181,11 +230,27 @@ def init_db():
     )
     """)
     cur.execute("SELECT COUNT(*) AS count FROM users")
-    if cur.fetchone()["count"] == 0:
+    user_count = cur.fetchone()["count"]
+    if user_count == 0:
+        if not ADMIN_EMAIL or not ADMIN_PASSWORD:
+            conn.close()
+            raise RuntimeError("ADMIN_EMAIL and ADMIN_PASSWORD are required when initializing an empty database.")
         cur.execute(
             "INSERT INTO users (name,email,password_hash,role,created_at) VALUES (?,?,?,?,?)",
-            ("Administrator", DEFAULT_ADMIN_EMAIL, generate_password_hash(DEFAULT_ADMIN_PASSWORD), "QPPV / Admin", datetime.utcnow().isoformat())
+            ("Administrator", ADMIN_EMAIL, generate_password_hash(ADMIN_PASSWORD), "QPPV / Admin", utc_iso())
         )
+    elif ADMIN_EMAIL and ADMIN_PASSWORD:
+        existing_admin = cur.execute("SELECT id FROM users WHERE email=?", (ADMIN_EMAIL,)).fetchone()
+        if existing_admin:
+            cur.execute(
+                "UPDATE users SET password_hash=?, role=? WHERE email=?",
+                (generate_password_hash(ADMIN_PASSWORD), "QPPV / Admin", ADMIN_EMAIL)
+            )
+        else:
+            cur.execute(
+                "INSERT INTO users (name,email,password_hash,role,created_at) VALUES (?,?,?,?,?)",
+                ("Administrator", ADMIN_EMAIL, generate_password_hash(ADMIN_PASSWORD), "QPPV / Admin", utc_iso())
+            )
     cur.execute("SELECT COUNT(*) AS count FROM rmp_register")
     if cur.fetchone()["count"] == 0:
         rows = [
@@ -205,13 +270,12 @@ def log_action(action, entity, entity_id="", details=""):
     conn = db()
     conn.execute(
         "INSERT INTO audit_log (username,action,entity,entity_id,details,created_at) VALUES (?,?,?,?,?,?)",
-        (session.get("email", "system"), action, entity, entity_id, details, datetime.utcnow().isoformat())
+        (session.get("email", "system"), action, entity, entity_id, details, utc_iso())
     )
     conn.commit()
     conn.close()
 
 def login_required(view):
-    from functools import wraps
     @wraps(view)
     def wrapped(*args, **kwargs):
         if not session.get("user_id"):
@@ -219,14 +283,79 @@ def login_required(view):
         return view(*args, **kwargs)
     return wrapped
 
+
+def is_admin_user():
+    role = session.get("role", "").lower()
+    return "admin" in role or "qppv" in role
+
+
+def csrf_token():
+    token = session.get("_csrf_token")
+    if not token:
+        token = secrets.token_urlsafe(32)
+        session["_csrf_token"] = token
+    return token
+
+
+def validate_csrf():
+    sent_token = request.form.get("_csrf_token", "")
+    stored_token = session.get("_csrf_token", "")
+    if not sent_token or not stored_token or not secrets.compare_digest(sent_token, stored_token):
+        abort(400)
+
+
+def form_text(name):
+    return request.form.get(name, "").strip()
+
+
+def csv_safe(value):
+    if isinstance(value, str) and value[:1] in {"=", "+", "-", "@"}:
+        return "'" + value
+    return value
+
+
+PASSWORD_POLICY_MESSAGE = "Password must be exactly 8 digits, or at least 8 letters/numbers with both letters and numbers."
+
+
+def password_is_allowed(password):
+    if password.isdigit():
+        return len(password) == 8
+    return (
+        len(password) >= 8
+        and password.isalnum()
+        and any(char.isalpha() for char in password)
+        and any(char.isdigit() for char in password)
+    )
+
+
+app.jinja_env.globals["csrf_token"] = csrf_token
+
+
 @app.before_request
-def setup():
-    init_db()
+def protect_csrf():
+    if request.method == "POST":
+        validate_csrf()
+
+
+@app.after_request
+def add_security_headers(response):
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    if session.get("user_id"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
+    if not PUBLIC_SIGNUP_ENABLED:
+        flash("Self-service registration is disabled. Ask an administrator for access.", "error")
+        return redirect(url_for("login"))
+
     if request.method == "POST":
-        name = request.form.get("name", "").strip()
-        email = request.form.get("email", "").strip().lower()
+        name = form_text("name")
+        email = form_text("email").lower()
         password = request.form.get("password", "")
         confirm_password = request.form.get("confirm_password", "")
 
@@ -236,6 +365,10 @@ def signup():
 
         if password != confirm_password:
             flash("Passwords do not match.", "error")
+            return redirect(url_for("signup"))
+
+        if not password_is_allowed(password):
+            flash(PASSWORD_POLICY_MESSAGE, "error")
             return redirect(url_for("signup"))
 
         conn = db()
@@ -261,7 +394,7 @@ def signup():
                 email,
                 generate_password_hash(password),
                 "PV Officer",
-                datetime.utcnow().isoformat()
+                utc_iso()
             )
         )
 
@@ -279,12 +412,14 @@ def public_home():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        email = request.form.get("email", "").strip().lower()
+        email = form_text("email").lower()
         password = request.form.get("password", "")
         conn = db()
         user = conn.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
         conn.close()
         if user and check_password_hash(user["password_hash"], password):
+            session.clear()
+            session.permanent = True
             session["user_id"] = user["id"]
             session["name"] = user["name"]
             session["email"] = user["email"]
@@ -292,9 +427,10 @@ def login():
             log_action("LOGIN", "user", str(user["id"]))
             return redirect(url_for("dashboard"))
         flash("Invalid email or password.", "error")
-    return render_template("login.html", default_email=DEFAULT_ADMIN_EMAIL, default_password=DEFAULT_ADMIN_PASSWORD)
+    return render_template("login.html", signup_enabled=PUBLIC_SIGNUP_ENABLED)
 
-@app.route("/logout")
+@app.route("/logout", methods=["POST"])
+@login_required
 def logout():
     log_action("LOGOUT", "user", str(session.get("user_id", "")))
     session.clear()
@@ -326,8 +462,10 @@ def documents():
 @app.route("/documents/<path:filename>")
 @login_required
 def document_file(filename):
+    if filename not in ALLOWED_DOCUMENTS:
+        abort(404)
     log_action("DOWNLOAD", "document", filename, "Source document download")
-    return send_from_directory("static/documents", filename, as_attachment=True)
+    return send_from_directory(DOCUMENT_DIR, filename, as_attachment=True)
 
 @app.route("/cases")
 @login_required
@@ -350,38 +488,52 @@ def cases():
 @login_required
 def new_case():
     if request.method == "POST":
-        now = datetime.utcnow().isoformat()
-        case_no = "BOPV-PV-" + datetime.utcnow().strftime("%Y%m%d%H%M%S")
+        now_dt = utc_now()
+        now = now_dt.isoformat()
+        required_fields = [
+            ("date_received", "Date received"),
+            ("patient_initials", "Patient initials"),
+            ("suspected_product", "Suspected product"),
+            ("event_term", "Event / reaction term"),
+            ("seriousness", "Seriousness"),
+            ("reporter_name", "Reporter name / initials"),
+        ]
+        missing = [label for field, label in required_fields if not form_text(field)]
+        if missing:
+            flash("Missing required fields: " + ", ".join(missing), "error")
+            return redirect(url_for("new_case"))
+
+        case_no = "BOPV-PV-" + now_dt.strftime("%Y%m%d%H%M%S") + "-" + secrets.token_hex(3).upper()
         fields = {
             "case_no": case_no,
-            "date_received": request.form.get("date_received"),
-            "report_type": request.form.get("report_type"),
-            "source_country": request.form.get("source_country"),
-            "case_status": request.form.get("case_status"),
-            "patient_initials": request.form.get("patient_initials"),
-            "age": request.form.get("age"),
-            "gender": request.form.get("gender"),
-            "special_population": request.form.get("special_population"),
-            "suspected_product": request.form.get("suspected_product"),
-            "batch_no": request.form.get("batch_no"),
-            "dose": request.form.get("dose"),
-            "route": request.form.get("route"),
-            "indication": request.form.get("indication"),
-            "administration_date": request.form.get("administration_date"),
-            "event_term": request.form.get("event_term"),
-            "onset_date": request.form.get("onset_date"),
-            "seriousness": request.form.get("seriousness"),
-            "seriousness_criteria": request.form.get("seriousness_criteria"),
-            "outcome": request.form.get("outcome"),
-            "expectedness": request.form.get("expectedness"),
-            "causality": request.form.get("causality"),
-            "followup_required": request.form.get("followup_required"),
-            "reporter_name": request.form.get("reporter_name"),
-            "reporter_qualification": request.form.get("reporter_qualification"),
-            "reporter_contact": request.form.get("reporter_contact"),
-            "facility_city": request.form.get("facility_city"),
-            "station_name": request.form.get("station_name"),
-            "narrative": request.form.get("narrative"),
+            "date_received": form_text("date_received"),
+            "report_type": form_text("report_type"),
+            "source_country": form_text("source_country"),
+            "case_status": form_text("case_status"),
+            "patient_initials": form_text("patient_initials"),
+            "age": form_text("age"),
+            "gender": form_text("gender"),
+            "special_population": form_text("special_population"),
+            "suspected_product": form_text("suspected_product"),
+            "batch_no": form_text("batch_no"),
+            "dose": form_text("dose"),
+            "route": form_text("route"),
+            "indication": form_text("indication"),
+            "administration_date": form_text("administration_date"),
+            "event_term": form_text("event_term"),
+            "onset_date": form_text("onset_date"),
+            "seriousness": form_text("seriousness"),
+            "seriousness_criteria": form_text("seriousness_criteria"),
+            "outcome": form_text("outcome"),
+            "expectedness": form_text("expectedness"),
+            "causality": form_text("causality"),
+            "followup_required": form_text("followup_required"),
+            "reporter_name": form_text("reporter_name"),
+            "reporter_qualification": form_text("reporter_qualification"),
+            "reporter_contact": form_text("reporter_contact"),
+            "facility_city": form_text("facility_city"),
+            "station_name": form_text("station_name"),
+            "narrative": form_text("narrative"),
             "created_by": session.get("email"),
             "created_at": now,
             "updated_at": now
@@ -395,7 +547,7 @@ def new_case():
         log_action("CREATE", "case", str(cur.lastrowid), case_no)
         flash(f"Case saved successfully: {case_no}", "success")
         return redirect(url_for("cases"))
-    today = datetime.utcnow().date().isoformat()
+    today = utc_now().date().isoformat()
     return render_template("case_form.html", today=today, stations=STATIONS)
 
 @app.route("/cases/<int:case_id>")
@@ -420,10 +572,13 @@ def rmp():
 @app.route("/reports")
 @login_required
 def reports():
-    conn = db()
-    audit = conn.execute("SELECT * FROM audit_log ORDER BY id DESC LIMIT 30").fetchall()
-    conn.close()
-    return render_template("reports.html", audit=audit)
+    can_view_audit = is_admin_user()
+    audit = []
+    if can_view_audit:
+        conn = db()
+        audit = conn.execute("SELECT * FROM audit_log ORDER BY id DESC LIMIT 30").fetchall()
+        conn.close()
+    return render_template("reports.html", audit=audit, can_view_audit=can_view_audit)
 
 @app.route("/export/cases.csv")
 @login_required
@@ -436,7 +591,7 @@ def export_cases_csv():
         writer = csv.DictWriter(output, fieldnames=rows[0].keys())
         writer.writeheader()
         for row in rows:
-            writer.writerow(dict(row))
+            writer.writerow({key: csv_safe(value) for key, value in dict(row).items()})
     else:
         output.write("No cases available\n")
     log_action("EXPORT", "cases", "", "CSV export")
@@ -450,6 +605,8 @@ def api_cases():
     conn.close()
     return jsonify([dict(r) for r in rows])
 
+init_db()
+
+
 if __name__ == "__main__":
-    init_db()
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=env_flag("FLASK_DEBUG", False))

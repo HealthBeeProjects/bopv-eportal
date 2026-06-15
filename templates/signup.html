@@ -54,6 +54,24 @@
             text-decoration:none;
             color:#00796b;
         }
+
+        .flash{
+            padding:12px;
+            border-radius:5px;
+            margin-bottom:15px;
+        }
+
+        .flash.success{
+            background:#ecfdf5;
+            color:#065f46;
+            border:1px solid #99f6e4;
+        }
+
+        .flash.error{
+            background:#fef2f2;
+            color:#991b1b;
+            border:1px solid #fecaca;
+        }
     </style>
 </head>
 <body>
@@ -62,7 +80,16 @@
 
     <h2>Create Account</h2>
 
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
     <form method="POST">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
 
         <label>Full Name</label>
         <input type="text" name="name" required>
@@ -71,7 +98,7 @@
         <input type="email" name="email" required>
 
         <label>Password</label>
-        <input type="password" name="password" required>
+        <input type="password" name="password" minlength="8" title="Use exactly 8 digits, or at least 8 letters/numbers with both letters and numbers." required>
 
         <label>Confirm Password</label>
         <input type="password" name="confirm_password" required>

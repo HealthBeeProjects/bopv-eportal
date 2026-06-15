@@ -7,6 +7,7 @@
   <meta name="description" content="bOPV E-Portal for pharmacovigilance case management, AEFI/ADR reporting, RMP monitoring, PSUR/PBRER support and DRAP-aligned workflows.">
   <meta name="keywords" content="bOPV E Portal, Pharmacovigilance Portal, AEFI Reporting, ADR Reporting, RMP, PSUR, PBRER, DRAP">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='security.css') }}">
 </head>
 <body>
 {% if session.get("user_id") %}
@@ -24,7 +25,10 @@
       <a href="{{ url_for('rmp') }}">RMP Register</a>
       <a href="{{ url_for('reports') }}">Reports</a>
       <a href="{{ url_for('documents') }}">Documents</a>
-      <a href="{{ url_for('logout') }}">Logout</a>
+      <form method="post" action="{{ url_for('logout') }}" class="logout-form">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+        <button type="submit">Logout</button>
+      </form>
     </nav>
   </aside>
   <main class="main">

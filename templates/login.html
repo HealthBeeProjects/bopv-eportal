@@ -5,7 +5,7 @@
   <div class="login-card">
     <a class="brand public" href="/"><span class="logo">PV</span><span><strong>bOPV E-Portal</strong><small>Secure Login</small></span></a>
     <h1>Login</h1>
-    <p class="muted">Demo credentials are shown below. Change password before production use.</p>
+    <p class="muted">Use your assigned PV portal account.</p>
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
@@ -14,11 +14,14 @@
       {% endif %}
     {% endwith %}
     <form method="post">
-      <label>Email <input type="email" name="email" value="{{ default_email }}" required></label>
-      <label>Password <input type="password" name="password" value="{{ default_password }}" required></label>
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <label>Email <input type="email" name="email" required autocomplete="username"></label>
+      <label>Password <input type="password" name="password" required autocomplete="current-password"></label>
       <button class="btn primary" type="submit">Login</button>
 
+{% if signup_enabled %}
 <a class="btn secondary" href="/signup">Create New Account</a>
+{% endif %}
 
 <a class="btn secondary" href="/">Back to Website</a>
     </form>

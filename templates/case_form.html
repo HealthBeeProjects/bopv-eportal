@@ -5,6 +5,7 @@
 <section class="panel">
   <p class="note">Mandatory ICSR criteria: identifiable patient, identifiable reporter, suspected product and suspected adverse event/reaction.</p>
   <form method="post" class="case-form">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
     <h2>1. Report Information</h2>
     <div class="form-grid">
       <label>Date Received <input type="date" name="date_received" value="{{ today }}" required></label>
