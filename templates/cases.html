@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Case Listing | bOPV E-Portal{% endblock %}
+{% block header %}Case Listing{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <form method="get" class="search-form">
+      <input type="text" name="q" placeholder="Search by case no, patient, event, batch, station..." value="{{ q }}">
+      <button class="btn secondary" type="submit">Search</button>
+    </form>
+    <div><a class="btn primary" href="{{ url_for('new_case') }}">New Case</a><a class="btn secondary" href="{{ url_for('export_cases_csv') }}">Export CSV</a></div>
+  </div>
+  <table>
+    <thead><tr><th>Case No.</th><th>Date</th><th>Patient</th><th>Product</th><th>Batch</th><th>Event</th><th>Seriousness</th><th>Status</th></tr></thead>
+    <tbody>
+    {% for c in cases %}
+      <tr><td><a href="{{ url_for('case_detail', case_id=c.id) }}">{{ c.case_no }}</a></td><td>{{ c.date_received }}</td><td>{{ c.patient_initials }}</td><td>{{ c.suspected_product }}</td><td>{{ c.batch_no }}</td><td>{{ c.event_term }}</td><td>{{ c.seriousness }}</td><td>{{ c.case_status }}</td></tr>
+    {% else %}
+      <tr><td colspan="8">No cases found.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

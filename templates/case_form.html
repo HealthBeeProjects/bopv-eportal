@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}New Case | bOPV E-Portal{% endblock %}
+{% block header %}New AEFI / ADR Case{% endblock %}
+{% block content %}
+<section class="panel">
+  <p class="note">Mandatory ICSR criteria: identifiable patient, identifiable reporter, suspected product and suspected adverse event/reaction.</p>
+  <form method="post" class="case-form">
+    <h2>1. Report Information</h2>
+    <div class="form-grid">
+      <label>Date Received <input type="date" name="date_received" value="{{ today }}" required></label>
+      <label>Report Type <select name="report_type"><option>Spontaneous</option><option>Solicited / Study</option><option>Literature</option><option>Product Complaint</option><option>Field Report</option></select></label>
+      <label>Source Country <input type="text" name="source_country" value="Pakistan"></label>
+      <label>Case Status <select name="case_status"><option>New</option><option>Under Review</option><option>Follow-up Required</option><option>Closed</option></select></label>
+    </div>
+
+    <h2>2. Patient Information</h2>
+    <div class="form-grid">
+      <label>Patient Initials <input type="text" name="patient_initials" required></label>
+      <label>Age / Age Group <input type="text" name="age" placeholder="e.g., 22 months"></label>
+      <label>Gender <select name="gender"><option>Unknown</option><option>Male</option><option>Female</option></select></label>
+      <label>Special Population <select name="special_population"><option>No</option><option>Child under 5 years</option><option>Pregnancy</option><option>Lactation</option><option>Immunocompromised</option></select></label>
+    </div>
+
+    <h2>3. Vaccine / Product Information</h2>
+    <div class="form-grid">
+      <label>Suspected Product <input type="text" name="suspected_product" value="bOPV / Oral Polio Vaccine" required></label>
+      <label>Batch / Lot No. <input type="text" name="batch_no"></label>
+      <label>Dose <input type="text" name="dose" value="2 drops"></label>
+      <label>Route <input type="text" name="route" value="Oral"></label>
+      <label>Indication <input type="text" name="indication" value="Polio immunization"></label>
+      <label>Date of Administration <input type="date" name="administration_date"></label>
+    </div>
+
+    <h2>4. Event Information</h2>
+    <div class="form-grid">
+      <label>Event / Reaction Term <input type="text" name="event_term" required placeholder="Fever / vomiting / diarrhea / flu"></label>
+      <label>Onset Date <input type="date" name="onset_date"></label>
+      <label>Seriousness <select name="seriousness" required><option>Non-serious</option><option>Serious</option></select></label>
+      <label>Seriousness Criteria <select name="seriousness_criteria"><option>Not applicable</option><option>Death</option><option>Life-threatening</option><option>Hospitalization / prolonged hospitalization</option><option>Disability / incapacity</option><option>Congenital anomaly</option><option>Medically important event</option></select></label>
+      <label>Outcome <select name="outcome"><option>Unknown</option><option>Recovered / resolved</option><option>Recovering / resolving</option><option>Not recovered</option><option>Recovered with sequelae</option><option>Fatal</option></select></label>
+      <label>Expectedness <select name="expectedness"><option>Expected</option><option>Unexpected</option><option>Unknown</option></select></label>
+      <label>Causality <select name="causality"><option>Not assessed</option><option>Certain</option><option>Probable / likely</option><option>Possible</option><option>Unlikely</option><option>Conditional / unclassified</option><option>Unassessable</option></select></label>
+      <label>Follow-up Required <select name="followup_required"><option>No</option><option>Yes</option></select></label>
+    </div>
+
+    <label>Case Narrative <textarea name="narrative" rows="6" placeholder="Chronology, treatment, outcome, dechallenge/rechallenge, medical history and reporter comments."></textarea></label>
+
+    <h2>5. Reporter / Vaccinator Information</h2>
+    <div class="form-grid">
+      <label>Reporter Name / Initials <input type="text" name="reporter_name" required></label>
+      <label>Reporter Qualification <input type="text" name="reporter_qualification" placeholder="e.g., vaccinator, physician, pharmacist"></label>
+      <label>Reporter Contact <input type="text" name="reporter_contact"></label>
+      <label>Facility / City <input type="text" name="facility_city"></label>
+      <label>Station / Address
+        <select name="station_name">
+          <option value="">Select station if available</option>
+          {% for s in stations %}<option>{{ s }}</option>{% endfor %}
+        </select>
+      </label>
+    </div>
+
+    <button class="btn primary" type="submit">Save Case</button>
+    <a class="btn secondary" href="{{ url_for('cases') }}">Cancel</a>
+  </form>
+</section>
+{% endblock %}

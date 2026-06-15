@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}RMP Register | bOPV E-Portal{% endblock %}
+{% block header %}Risk Management Plan Register{% endblock %}
+{% block content %}
+<section class="panel"><table><thead><tr><th>Safety Concern</th><th>Category</th><th>Monitoring Activity</th><th>Risk Minimization</th><th>Escalation Trigger</th><th>Status</th></tr></thead><tbody>{% for r in rows %}<tr><td>{{ r.safety_concern }}</td><td>{{ r.category }}</td><td>{{ r.monitoring_activity }}</td><td>{{ r.risk_minimization }}</td><td>{{ r.escalation_trigger }}</td><td>{{ r.status }}</td></tr>{% endfor %}</tbody></table></section>
+{% endblock %}

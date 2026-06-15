@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}bOPV E-Portal{% endblock %}</title>
+  <meta name="description" content="bOPV E-Portal for pharmacovigilance case management, AEFI/ADR reporting, RMP monitoring, PSUR/PBRER support and DRAP-aligned workflows.">
+  <meta name="keywords" content="bOPV E Portal, Pharmacovigilance Portal, AEFI Reporting, ADR Reporting, RMP, PSUR, PBRER, DRAP">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+{% if session.get("user_id") %}
+<div class="app">
+  <aside class="sidebar">
+    <a class="brand" href="{{ url_for('dashboard') }}">
+      <span class="logo">PV</span>
+      <span><strong>bOPV E-Portal</strong><small>HealthBee PV System</small></span>
+    </a>
+    <nav>
+      <a href="{{ url_for('dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('aefi_analysis') }}">AEFI Analysis</a>
+      <a href="{{ url_for('new_case') }}">New Case</a>
+      <a href="{{ url_for('cases') }}">Case Listing</a>
+      <a href="{{ url_for('rmp') }}">RMP Register</a>
+      <a href="{{ url_for('reports') }}">Reports</a>
+      <a href="{{ url_for('documents') }}">Documents</a>
+      <a href="{{ url_for('logout') }}">Logout</a>
+    </nav>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <h1>{% block header %}bOPV E-Portal{% endblock %}</h1>
+        <p>AEFI / ADR management, RMP monitoring and regulatory reporting support</p>
+      </div>
+      <div class="user">{{ session.get("name") }}<br><small>{{ session.get("role") }}</small></div>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+</div>
+{% else %}
+{% block public %}{% endblock %}
+{% endif %}
+</body>
+</html>

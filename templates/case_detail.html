@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}{{ c.case_no }} | bOPV E-Portal{% endblock %}
+{% block header %}Case Detail: {{ c.case_no }}{% endblock %}
+{% block content %}
+<section class="panel"><div class="detail-grid">{% for key in c.keys() %}<div><strong>{{ key.replace("_", " ").title() }}</strong><p>{{ c[key] }}</p></div>{% endfor %}</div></section>
+{% endblock %}

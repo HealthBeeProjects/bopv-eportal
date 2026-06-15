@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Dashboard | bOPV E-Portal{% endblock %}
+{% block header %}Dashboard{% endblock %}
+{% block content %}
+<div class="cards">
+  <div class="card"><p>Total Entered Cases</p><h2>{{ total }}</h2></div>
+  <div class="card"><p>Serious Cases</p><h2>{{ serious }}</h2></div>
+  <div class="card"><p>Non-serious Cases</p><h2>{{ non_serious }}</h2></div>
+  <div class="card"><p>Pending Follow-up</p><h2>{{ followup }}</h2></div>
+</div>
+<div class="cards">
+  <div class="card"><p>AEFI Cohort</p><h2>{{ summary.total_children }}</h2></div>
+  <div class="card"><p>Active AEFI</p><h2>{{ summary.active_aefi }}</h2></div>
+  <div class="card"><p>Afebrile</p><h2>{{ summary.afebrile }}</h2></div>
+  <div class="card"><p>SAEFI</p><h2>{{ summary.saefi }}</h2></div>
+</div>
+
+<div class="two-col">
+  <section class="panel">
+    <h2>Recent Entered Cases</h2>
+    <table>
+      <thead><tr><th>Case No.</th><th>Date</th><th>Patient</th><th>Event</th><th>Seriousness</th></tr></thead>
+      <tbody>
+      {% for c in recent %}
+        <tr><td><a href="{{ url_for('case_detail', case_id=c.id) }}">{{ c.case_no }}</a></td><td>{{ c.date_received }}</td><td>{{ c.patient_initials }}</td><td>{{ c.event_term }}</td><td>{{ c.seriousness }}</td></tr>
+      {% else %}
+        <tr><td colspan="5">No cases entered yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  <section class="panel">
+    <h2>Summary by Event</h2>
+    <table>
+      <thead><tr><th>Event</th><th>Frequency</th></tr></thead>
+      <tbody>
+      {% for e in by_event %}
+        <tr><td>{{ e.event_term }}</td><td>{{ e.count }}</td></tr>
+      {% else %}
+        <tr><td colspan="2">No event data available.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+{% endblock %}

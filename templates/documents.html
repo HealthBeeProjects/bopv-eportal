@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Documents | bOPV E-Portal{% endblock %}
+{% block header %}Source Documents{% endblock %}
+{% block content %}
+<section class="panel">
+  <h2>Controlled Document Access</h2>
+  <p class="note">Patient-identifiable source AEFI forms should not be published publicly. Keep filled forms in secure controlled storage only. This portal includes the aggregate AEFI statistical report for internal reference.</p>
+  <table>
+    <thead><tr><th>Document</th><th>Description</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td>AEFI_REPORT_UPDATED.docx</td><td>Aggregate AEFI statistical analysis report, N=70 immunized children.</td><td><a class="btn primary" href="{{ url_for('document_file', filename='AEFI_REPORT_UPDATED.docx') }}">Download</a></td></tr>
+    </tbody>
+  </table>
+</section>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}bOPV E-Portal | Pharmacovigilance & AEFI Reporting Website{% endblock %}
+{% block public %}
+<header class="public-nav">
+  <div class="container nav-inner">
+    <a class="brand public" href="/"><span class="logo">PV</span><span><strong>bOPV E-Portal</strong><small>Pharmacovigilance Monitoring</small></span></a>
+    <nav>
+      <a href="#about">About</a>
+      <a href="#analysis">AEFI Analysis</a>
+      <a href="#modules">Modules</a>
+      <a href="{{ url_for('login') }}" class="login-btn">Login</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="container hero-grid">
+    <div>
+      <p class="eyebrow">DRAP / WHO-aligned PV data management</p>
+      <h1>bOPV E-Portal for AEFI, ADR, RMP and PSUR/PBRER Monitoring</h1>
+      <p class="hero-text">A proper e-portal for AEFI case collection, analysis, source station tracking, RMP monitoring and regulatory reporting support.</p>
+      <a class="btn primary" href="{{ url_for('login') }}">Open E-Portal</a>
+      <a class="btn secondary" href="#analysis">View AEFI Analysis</a>
+    </div>
+    <div class="hero-card">
+      <h2>AEFI Cohort Summary</h2>
+      <div class="mini-metrics">
+        <div><strong>{{ summary.total_children }}</strong><span>Children</span></div>
+        <div><strong>{{ summary.active_aefi }}</strong><span>Active AEFI</span></div>
+        <div><strong>{{ summary.saefi }}</strong><span>SAEFI</span></div>
+      </div>
+      <p>Most prevalent reaction: <b>{{ summary.most_prevalent }}</b>.</p>
+    </div>
+  </div>
+</section>
+
+<section id="about" class="section">
+  <div class="container two-col">
+    <div>
+      <p class="eyebrow">About</p>
+      <h2>Purpose of the bOPV E-Portal</h2>
+      <p>This website supports collection and review of safety data related to bOPV vaccine. It is designed for adverse event collection, AEFI/ADR reporting, RMP monitoring, PSUR/PBRER preparation and signal review.</p>
+    </div>
+    <div class="info-box">
+      <h3>Minimum Valid Case Criteria</h3>
+      <ul><li>Identifiable patient</li><li>Identifiable reporter</li><li>Suspected product</li><li>Suspected adverse event or reaction</li></ul>
+    </div>
+  </div>
+</section>
+
+<section id="analysis" class="section alt">
+  <div class="container">
+    <p class="eyebrow">AEFI Statistical Analysis</p>
+    <h2>Aggregate Safety Results</h2>
+    <div class="feature-grid">
+      {% for name, freq, percent, valid in symptoms %}
+      <article><h3>{{ name }}</h3><p><b>{{ freq }}</b> cases • {{ percent }}% of total cohort{% if valid %} • {{ valid }}% of symptomatic{% endif %}</p></article>
+      {% endfor %}
+    </div>
+    <p class="note">Only aggregate data is shown publicly. Patient-identifiable details should remain inside the secure PV system.</p>
+  </div>
+</section>
+
+<section id="modules" class="section">
+  <div class="container">
+    <p class="eyebrow">Modules</p>
+    <h2>Portal Modules</h2>
+    <div class="feature-grid">
+      <article><h3>AEFI Case Entry</h3><p>Enter patient, reporter, vaccine, batch, event, seriousness, outcome and narrative details.</p></article>
+      <article><h3>AEFI Analysis</h3><p>View N=70 cohort statistics, demographics, symptoms, gender crosstab and stations.</p></article>
+      <article><h3>RMP Register</h3><p>Monitor identified risks, potential risks, missing information and risk minimization measures.</p></article>
+      <article><h3>Case Listing</h3><p>Search, review and export case listings for PV review.</p></article>
+      <article><h3>Audit Trail</h3><p>Track login, case creation and exports.</p></article>
+      <article><h3>Documents</h3><p>Secure access to source aggregate report and controlled PV documents.</p></article>
+    </div>
+  </div>
+</section>
+
+<footer class="footer"><div class="container"><p>© bOPV E-Portal. Pharmacovigilance website prototype.</p></div></footer>
+{% endblock %}

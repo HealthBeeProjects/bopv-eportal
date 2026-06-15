@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Reports | bOPV E-Portal{% endblock %}
+{% block header %}Reports and Audit Trail{% endblock %}
+{% block content %}
+<div class="cards"><div class="card"><p>Serious AE/ADR/AEFI</p><h2>15 days</h2></div><div class="card"><p>Non-serious AE/ADR/AEFI</p><h2>90 days</h2></div><div class="card"><p>Zero Event Report</p><h2>90 days</h2></div><div class="card"><p>Significant Safety Issue</p><h2>15 days</h2></div></div>
+<section class="panel"><div class="panel-head"><h2>Exports</h2><a class="btn primary" href="{{ url_for('export_cases_csv') }}">Download Case Listing CSV</a></div></section>
+<section class="panel"><h2>Audit Trail</h2><table><thead><tr><th>Date/Time</th><th>User</th><th>Action</th><th>Entity</th><th>Details</th></tr></thead><tbody>{% for a in audit %}<tr><td>{{ a.created_at }}</td><td>{{ a.username }}</td><td>{{ a.action }}</td><td>{{ a.entity }}</td><td>{{ a.details }}</td></tr>{% else %}<tr><td colspan="5">No audit log entries.</td></tr>{% endfor %}</tbody></table></section>
+{% endblock %}
