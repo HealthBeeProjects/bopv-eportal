@@ -222,7 +222,56 @@ def login_required(view):
 @app.before_request
 def setup():
     init_db()
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
+        confirm_password = request.form.get("confirm_password", "")
 
+        if not name or not email or not password:
+            flash("All fields are required.", "error")
+            return redirect(url_for("signup"))
+
+        if password != confirm_password:
+            flash("Passwords do not match.", "error")
+            return redirect(url_for("signup"))
+
+        conn = db()
+
+        existing_user = conn.execute(
+            "SELECT * FROM users WHERE email=?",
+            (email,)
+        ).fetchone()
+
+        if existing_user:
+            conn.close()
+            flash("Email already registered.", "error")
+            return redirect(url_for("login"))
+
+        conn.execute(
+            """
+            INSERT INTO users
+            (name, email, password_hash, role, created_at)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                name,
+                email,
+                generate_password_hash(password),
+                "PV Officer",
+                datetime.utcnow().isoformat()
+            )
+        )
+
+        conn.commit()
+        conn.close()
+
+        flash("Account created successfully. Please login.", "success")
+        return redirect(url_for("login"))
+
+    return render_template("signup.html")
 @app.route("/")
 def public_home():
     return render_template("public_home.html", app_name=APP_NAME, summary=AEFI_SUMMARY, symptoms=SYMPTOM_FREQUENCY)
