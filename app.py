@@ -52,7 +52,7 @@ if not SECRET_KEY:
 
 ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "").strip().lower()
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
-PUBLIC_SIGNUP_ENABLED = env_flag("PUBLIC_SIGNUP_ENABLED", False)
+PUBLIC_SIGNUP_ENABLED = env_flag("PUBLIC_SIGNUP_ENABLED", True)
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY

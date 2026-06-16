@@ -105,10 +105,21 @@ class PortalSmokeTests(unittest.TestCase):
         self.assertNotIn(b"Audit Trail", officer_response.data)
         self.assertNotIn(b"admin@example.test", officer_response.data)
 
-    def test_signup_is_disabled_by_default(self):
+    def test_signup_can_be_disabled_by_config(self):
         response = self.client.get("/signup")
         self.assertEqual(response.status_code, 302)
         self.assertIn("/login", response.headers["Location"])
+
+    def test_login_shows_signup_link_when_enabled(self):
+        original = portal.PUBLIC_SIGNUP_ENABLED
+        portal.PUBLIC_SIGNUP_ENABLED = True
+        try:
+            response = self.client.get("/login")
+        finally:
+            portal.PUBLIC_SIGNUP_ENABLED = original
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Create New Account", response.data)
+        self.assertIn(b'href="/signup"', response.data)
 
     def test_signup_password_policy(self):
         self.assertTrue(portal.password_is_allowed("12345678"))

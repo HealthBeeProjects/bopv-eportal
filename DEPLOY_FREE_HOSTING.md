@@ -20,7 +20,7 @@ Why:
    ADMIN_EMAIL=your-admin-email
    ADMIN_PASSWORD=your-strong-admin-password
    PV_DB_PATH=/home/YOURUSERNAME/pv_eportal.db
-   PUBLIC_SIGNUP_ENABLED=false
+   PUBLIC_SIGNUP_ENABLED=true
    SESSION_COOKIE_SECURE=true
 6. Create a Web App:
    Web tab > Add new web app > Manual configuration > Python 3.11
@@ -38,4 +38,4 @@ Why:
 
 ## Important
 Do not put patient-identifiable AEFI forms on public pages.
-Use HTTPS, keep self-service signup disabled unless you have an approval workflow, and rotate the admin password through `ADMIN_PASSWORD`.
+Use HTTPS, set `PUBLIC_SIGNUP_ENABLED=false` if you need controlled account creation, and rotate the admin password through `ADMIN_PASSWORD`.

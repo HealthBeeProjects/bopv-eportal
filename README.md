@@ -25,7 +25,7 @@ The app requires a real secret key before it will start.
 Create a local `.env` file from `.env.example`, then set:
 - `SECRET_KEY` to a long random value.
 - `ADMIN_EMAIL` and `ADMIN_PASSWORD` to create or reset the bootstrap admin account.
-- `PUBLIC_SIGNUP_ENABLED=false` for controlled PV access.
+- `PUBLIC_SIGNUP_ENABLED=true` to show the Create New Account option, or `false` for controlled PV access.
 - `SESSION_COOKIE_SECURE=true` when deployed behind HTTPS.
 
 If the database is empty and `ADMIN_EMAIL` / `ADMIN_PASSWORD` are missing, startup fails instead of creating a known demo account.
@@ -58,7 +58,7 @@ Basic steps:
 4. Run:
    mkvirtualenv --python=/usr/bin/python3.11 pv-env
    pip install -r requirements.txt
-5. Set environment variables for `SECRET_KEY`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `PV_DB_PATH`, `PUBLIC_SIGNUP_ENABLED`, and `SESSION_COOKIE_SECURE`.
+5. Set environment variables for `SECRET_KEY`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `PV_DB_PATH`, `PUBLIC_SIGNUP_ENABLED`, and `SESSION_COOKIE_SECURE`. On hosts such as Render, local `.env` values are not deployed automatically.
 6. Web tab > Add new web app > Manual configuration > Python 3.11.
 7. Set source code path to the uploaded folder.
 8. Set virtualenv path to pv-env.
